@@ -17,7 +17,17 @@
  * @param {KeymapConfig} map
  * @return {KeyboardEventHandler}
  */
-module.exports = (map) => (event) =>
+module.exports = (map) => (event) => {
+  // Bail out if this is not a KeyboardEvent (e.g. InputEvent from datalist
+  // selection). Only KeyboardEvents have `key` and `getModifierState`.
+  if (
+    !(event instanceof KeyboardEvent) ||
+    typeof event.key === "undefined" ||
+    typeof event.getModifierState !== "function"
+  ) {
+    return;
+  }
+
   Object.keys(map).forEach((combo) => {
     // Each key combination can have one or more modifier, where each modifier is prefixed with the
     // modifier name and "+".
@@ -28,8 +38,9 @@ module.exports = (map) => (event) =>
     const key = parts.pop();
 
     // Verify that the modifiers on the event are exactly equal to the modifiers specified in the
-    // key combination.
-    const isModifierMatch = ["Shift", "Alt", "Ctrl", "Meta"]
+    // key combination. Use the spec modifier names recognized by `getModifierState()`: "Control"
+    // (not "Ctrl"), "Shift", "Alt", "Meta".
+    const isModifierMatch = ["Shift", "Alt", "Control", "Meta"]
       // For any modifier active in the event (or vice-versa, expected in the key combination)...
       .filter((mod) => event.getModifierState(mod) || parts.includes(mod))
       // Ensure that it is expected in the key combination (or vice-versa, active in the event).
@@ -39,3 +50,4 @@ module.exports = (map) => (event) =>
       map[combo](event);
     }
   });
+};
